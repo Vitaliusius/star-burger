@@ -1,5 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from phonenumber_field.modelfields import PhoneNumberField
+import phonenumbers
 
 
 class Restaurant(models.Model):
@@ -36,6 +38,27 @@ class ProductQuerySet(models.QuerySet):
         return self.filter(pk__in=products)
 
 
+class Order(models.Model):
+    firstname = models.CharField(
+        'Имя',
+        max_length=50
+    )
+    lastname = models.CharField(
+        'Фамилия',
+        max_length=50
+    )
+    phonenumber = PhoneNumberField(
+        region='RU',
+        verbose_name='Номер телефона',)
+    address = models.TextField(
+        'адрес',
+        max_length=200,
+    )
+
+    def __str__(self):
+        return f"{self.firstname} {self.lastname} {self.address}"
+
+
 class ProductCategory(models.Model):
     name = models.CharField(
         'название',
@@ -50,7 +73,7 @@ class ProductCategory(models.Model):
         return self.name
 
 
-class Product(models.Model):
+class Product(models.Model):   
     name = models.CharField(
         'название',
         max_length=50
@@ -93,6 +116,32 @@ class Product(models.Model):
         return self.name
 
 
+class OrderElements(models.Model):
+    products = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='orders',
+        verbose_name='продукт',
+    )
+    quantity = models.PositiveSmallIntegerField(
+        verbose_name='Количество',
+        validators=[MinValueValidator(1)],
+    )
+    order = models.ForeignKey(
+        Order,
+        related_name='elements',
+        verbose_name="Заказ",
+        on_delete=models.CASCADE,
+    )
+
+    class Meta:
+        verbose_name = 'Элемент заказа'
+        verbose_name_plural = 'Элементы заказа'
+
+    def __str__(self):
+        return f"{self.products.name} {self.order.firstname} {self.order.lastname} {self.order.address}"  
+
+
 class RestaurantMenuItem(models.Model):
     restaurant = models.ForeignKey(
         Restaurant,
@@ -121,3 +170,10 @@ class RestaurantMenuItem(models.Model):
 
     def __str__(self):
         return f"{self.restaurant.name} - {self.product.name}"
+
+
+
+
+
+
+
