@@ -10,5 +10,5 @@ urlpatterns = [
     path('products/', product_list_api),
     path('banners/', banners_list_api),
     path('order/', register_order),
-    path('/api/order/ ', include('rest_framework.urls')),
+    path('api/ ', include('rest_framework.urls')),
 ]
