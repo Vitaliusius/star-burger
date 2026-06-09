@@ -1,4 +1,5 @@
 import json
+import phonenumbers
 
 from django.http import JsonResponse
 from django.templatetags.static import static
@@ -77,7 +78,16 @@ def register_order(request):
     serializer = ApplicationSerializer(data=order)
     serializer.is_valid(raise_exception=True)
     if not isinstance(order['products'], list):
-        return Response(['Ожидался list со значениями, но был получен "str"'], status=200)      
+        return Response(['Ожидался list со значениями, но был получен "str"'], status=200)
+    if len(order['products']) == 0:
+        return Response(['Этот список не может быть пустым'], status=200)
+    if not phonenumbers.is_valid_number(phonenumbers.parse(order['phonenumber'])):
+        return Response(['введен неверный номер телефона'], status=200)
+    for product in order['products']:
+        try:
+            Product.objects.get(id=product['product'])
+        except Product.DoesNotExist:
+            return Response([f'Недопустимый первичный ключ {product['product']}'], status=200)
     new_order = Order.objects.get_or_create(
     firstname=order['firstname'],
     lastname=order['lastname'],
