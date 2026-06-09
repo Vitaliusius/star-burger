@@ -5,6 +5,10 @@ from django.templatetags.static import static
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Product, Order, OrderElements
+from rest_framework import status
+from rest_framework.serializers import ValidationError
+from rest_framework.serializers import Serializer
+from rest_framework.serializers import CharField
 
 
 def banners_list_api(request):
@@ -53,18 +57,34 @@ def product_list_api(request):
             }
         }
         dumped_products.append(dumped_product)
-    return Response(dumped_products)
+    return JsonResponse(dumped_products, safe=False, json_dumps_params={
+        'ensure_ascii': False,
+        'indent': 4,
+    })
 
 
-@api_view(['POST'])
+class ApplicationSerializer(Serializer):
+    firstname = CharField()
+    lastname = CharField()
+    phonenumber = CharField(max_length=12)
+    address = CharField()
+
+
+@api_view(['GET', 'POST'])
 def register_order(request):
-    order = request.data
+    order = json.dumps(request.data, ensure_ascii=False)
+    order = json.loads(order)
+    serializer = ApplicationSerializer(data=order)
+    serializer.is_valid(raise_exception=True)
+    if not isinstance(order['products'], list):
+        return Response(['Ожидался list со значениями, но был получен "str"'], status=200)      
     new_order = Order.objects.get_or_create(
-        firstname=order['firstname'],
-        lastname=order['lastname'],
-        phonenumber=order['phonenumber'],
-        address=order['address'],
+    firstname=order['firstname'],
+    lastname=order['lastname'],
+    phonenumber=order['phonenumber'],
+    address=order['address'],
     )
+
     for product in order['products']:
         OrderElements.objects.get_or_create(
             order_id=new_order[0].id,
@@ -72,5 +92,5 @@ def register_order(request):
             quantity=product['quantity'],
         )
 
-    return JsonResponse(order)
+    return Response(serializer.is_valid(raise_exception=True))
 
