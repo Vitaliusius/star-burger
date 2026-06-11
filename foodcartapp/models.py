@@ -41,7 +41,7 @@ class ProductQuerySet(models.QuerySet):
 class Order(models.Model):
     firstname = models.CharField(
         'Имя',
-        max_length=50
+        max_length=50,
     )
     lastname = models.CharField(
         'Фамилия',
@@ -117,7 +117,7 @@ class Product(models.Model):
 
 
 class OrderElements(models.Model):
-    products = models.ForeignKey(
+    product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
         related_name='orders',
