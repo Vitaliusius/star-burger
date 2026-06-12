@@ -64,65 +64,52 @@ def product_list_api(request):
     })
 
 
-class OrderElementsSerializer(ModelSerializer):
-    class Meta:
-        model = OrderElements
-        fields = ['product', 'quantity']    
-
-
 class OrderSerializer(ModelSerializer):
-    products = OrderElementsSerializer(many=True)
+    def create(self, validated_data):
+        return Order.objects.create(**validated_data)
     class Meta:
         model = Order
-        fields = ['firstname', 'lastname', 'phonenumber', 'address', 'products']
+        fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address']
+
+
+class OrderElementsSerializer(ModelSerializer):
+    product = OrderSerializer(many=True)
+    class Meta:
+        model = OrderElements
+        fields = ['product', 'quantity', 'order_id', 'order']
 
 
 def validate(order):
     try:
-        errors = []
-        if len(order['products']) == 0:
-            errors.append(['Этот список не может быть пустым.'])
-        if isinstance(order['products'], str):
-            errors.append(['Ожидался list со значениями, но был получен "str".'])
-        if not phonenumbers.is_valid_number(phonenumbers.parse(order['phonenumber'])):
-            errors.append(['введен неверный номер телефона.'])
+        if isinstance(order['products'], list):
+            if len(order['products']) == 0:
+                raise ValidationError(['Этот список не может быть пустым.'])
+        elif not order['products']:
+            raise ValidationError(['products:Это поле не может быть пустым.'])
+        elif isinstance(order['products'], str):
+            raise ValidationError(['Ожидался list со значениями, но был получен "str".'])
+        elif not phonenumbers.is_valid_number(phonenumbers.parse(order['phonenumber'])):
+            raise ValidationError(['введен неверный номер телефона.'])
         for product in order['products']:
             if not product:
-                errors.append(['products: Обязательное поле.'])
-            if not isinstance(product, dict):
-                errors.append(['products:Это поле не может быть пустым.'])
-            Product.objects.get(id=product['product'])
+                raise ValidationError(['products: Обязательное поле.'])
 
+            Product.objects.get(id=product['product'])
+    except TypeError as e:
+        raise ValidationError([f'{e}'])
     except Product.DoesNotExist:
         raise ValidationError([f'Недопустимый первичный ключ {product['product']}'])
-
-    if errors:
-        raise ValidationError(errors)
-
-    return(order)
 
 
 @api_view(['POST'])
 def register_order(request):
     order = json.dumps(request.data, ensure_ascii=False)
     order = json.loads(order)
-
     serializer = OrderSerializer(data=order)
-    serializer.is_valid(raise_exception=True)
-    
+    serializer.is_valid(raise_exception=True)   
     order = validate(order)
-    new_order = Order.objects.get_or_create(
-        firstname=serializer.validated_data['firstname'],
-        lastname=serializer.validated_data['lastname'],
-        phonenumber=serializer.validated_data['phonenumber'],
-        address=serializer.validated_data['address'],
-    )
-    for product in serializer.validated_data['products']:
-        OrderElements.objects.get_or_create(
-            order_id=new_order[0].id,
-            products_id=product['product'],
-            quantity=product['quantity'],
-        )
+    serializer.validated_data
+    serializer.save()
 
-    return Response(order)
+    return Response(serializer.data, status=201)
 
