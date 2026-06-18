@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.serializers import ValidationError
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ListField
 
 
 def banners_list_api(request):
@@ -64,52 +65,43 @@ def product_list_api(request):
     })
 
 
-class OrderSerializer(ModelSerializer):
-    def create(self, validated_data):
-        return Order.objects.create(**validated_data)
-    class Meta:
-        model = Order
-        fields = ['id', 'firstname', 'lastname', 'phonenumber', 'address']
-
-
 class OrderElementsSerializer(ModelSerializer):
-    product = OrderSerializer(many=True)
     class Meta:
         model = OrderElements
-        fields = ['product', 'quantity', 'order_id', 'order']
+        fields = ['product', 'quantity']
 
 
-def validate(order):
-    try:
-        if isinstance(order['products'], list):
-            if len(order['products']) == 0:
-                raise ValidationError(['Этот список не может быть пустым.'])
-        elif not order['products']:
-            raise ValidationError(['products:Это поле не может быть пустым.'])
-        elif isinstance(order['products'], str):
-            raise ValidationError(['Ожидался list со значениями, но был получен "str".'])
-        elif not phonenumbers.is_valid_number(phonenumbers.parse(order['phonenumber'])):
-            raise ValidationError(['введен неверный номер телефона.'])
-        for product in order['products']:
-            if not product:
-                raise ValidationError(['products: Обязательное поле.'])
+class OrderSerializer(ModelSerializer):
+    products = OrderElementsSerializer(many=True, allow_empty=False, write_only=True)
+    def create(self, validated_data):
+        instance = validated_data.pop('products')
+        new_order = Order.objects.create(
+            firstname=validated_data['firstname'],
+            lastname=validated_data['lastname'],
+            phonenumber=validated_data['phonenumber'],
+            address=validated_data['address'],            
+            )
+        for element in instance:
+            OrderElements.objects.create(
+                product=element.get('product'),
+                quantity=element.get('quantity'),
+                order=new_order,
+                order_price=element.get("quantity")*element.get('product').price
+            )
+        return new_order 
 
-            Product.objects.get(id=product['product'])
-    except TypeError as e:
-        raise ValidationError([f'{e}'])
-    except Product.DoesNotExist:
-        raise ValidationError([f'Недопустимый первичный ключ {product['product']}'])
+    class Meta:       
+        model = Order
+        fields = '__all__'
 
 
 @api_view(['POST'])
 def register_order(request):
     order = json.dumps(request.data, ensure_ascii=False)
     order = json.loads(order)
-    serializer = OrderSerializer(data=order)
-    serializer.is_valid(raise_exception=True)   
-    order = validate(order)
-    serializer.validated_data
-    serializer.save()
+    serializer_order = OrderSerializer(data=order)
+    serializer_order.is_valid(raise_exception=True)
+    serializer_order.save()
 
-    return Response(serializer.data, status=201)
+    return Response(serializer_order.data, status=201)
 

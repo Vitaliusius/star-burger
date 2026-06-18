@@ -92,20 +92,9 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    orders = Order.objects.all()
-    orders_items = []
-    for order in orders:
-        items = {}
-        items['id'] = order.id
-        items['firstname'] = order.firstname
-        items['phonenumber'] = order.phonenumber
-        items['address'] = order.address
-        orders_items.append(items)
-
-
     return render(
         request,
         template_name='order_items.html',
         context={
-            'orders_items':orders_items
+            'order_items':Order.objects.all().price()
         })
