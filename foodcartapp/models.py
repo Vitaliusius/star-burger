@@ -50,19 +50,35 @@ class Order(models.Model):
     firstname = models.CharField(
         'Имя',
         max_length=50,
+        db_index=True,
     )
     lastname = models.CharField(
         'Фамилия',
-        max_length=50
+        max_length=50,
+        db_index=True,
     )
     phonenumber = PhoneNumberField(
         region='RU',
-        verbose_name='Номер телефона',)
+        verbose_name='Номер телефона',
+        db_index=True,)
     address = models.TextField(
         'адрес',
         max_length=200,
+        db_index=True,
     )
     objects = OrderQuerySet.as_manager()
+    status = models.CharField(
+        max_length=15,
+        db_index=True,
+        verbose_name='Статус заказа',
+        choices=(
+            ('new', 'Необработанный'),
+            ('assembly', 'В сборке'),
+            ('delivery', 'В пути'),
+            ('completed', 'Доставлен'),
+        ),
+        default='new',
+    )
 
     def __str__(self):
         return f"{self.firstname} {self.lastname} {self.address}"
