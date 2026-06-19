@@ -129,6 +129,7 @@ class OrderAdmin(admin.ModelAdmin):
         'registrated_at',
         'called_at',
         'delivered_at',
+        'pay',
     ]
     inlines = [
         OrderElementsInLine
