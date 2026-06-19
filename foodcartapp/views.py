@@ -1,16 +1,18 @@
 import json
+
 import phonenumbers
 
 from django.http import JsonResponse
 from django.templatetags.static import static
+from django.db import transaction
+from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Product, Order, OrderElements
-from rest_framework import status
 from rest_framework.serializers import ValidationError
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from rest_framework.serializers import ListField
+from .models import Product, Order, OrderElements
 
 
 def banners_list_api(request):
@@ -88,6 +90,7 @@ class OrderSerializer(ModelSerializer):
                 order=new_order,
                 order_price=element.get("quantity")*element.get('product').price
             )
+            
         return new_order 
 
     class Meta:       
@@ -96,6 +99,7 @@ class OrderSerializer(ModelSerializer):
 
 
 @api_view(['POST'])
+@transaction.atomic
 def register_order(request):
     order = json.dumps(request.data, ensure_ascii=False)
     order = json.loads(order)
