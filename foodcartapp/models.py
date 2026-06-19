@@ -79,6 +79,10 @@ class Order(models.Model):
         ),
         default='new',
     )
+    comment = models.TextField(
+        verbose_name='Комментарий',
+        blank=True,
+    )
 
     def __str__(self):
         return f"{self.firstname} {self.lastname} {self.address}"
