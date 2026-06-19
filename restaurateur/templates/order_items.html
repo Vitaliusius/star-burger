@@ -15,6 +15,7 @@
     <tr>
       <th>ID заказа</th>
       <th>Статус</th>
+      <th>Способ оплаты</th>
       <th>Стоимость</th>
       <th>Адрес доставки</th>
       <th>Клиент</th>
@@ -29,6 +30,7 @@
         <tr>
           <th>{{item.id}}</th>        
           <th>{{item.get_status_display}}</th>
+          <th>{{item.pay}}</th>
           <th>{{item.price}}</th>
           <th>{{item.address}}</th>
           <th>{{item.firstname}}</th>
