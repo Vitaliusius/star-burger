@@ -22,22 +22,24 @@
       <th>Телефон</th>
       <th>Адрес</th>
       <th>Комментарий</th>
+      <th>Рестораны</th>
       <th>Ссылка на админку</th>
     </tr>
 
-    {% for item in order_items %}
-      {% if item.status != 'completed' %}
+    {% for order in orders %}
+      {% if order.status != 'Доставлен' %}
         <tr>
-          <th>{{item.id}}</th>        
-          <th>{{item.get_status_display}}</th>
-          <th>{{item.pay}}</th>
-          <th>{{item.price}}</th>
-          <th>{{item.address}}</th>
-          <th>{{item.firstname}}</th>
-          <th>{{item.phonenumber}}</th>
-          <th>{{item.address}}</th>
-          <th>{{item.comment}}</th>
-          <th><a href="{% url 'admin:foodcartapp_order_change' item.id %}?next={{ request.get_full_path|urlencode }}">Редактировать</a></th>
+          <th>{{order.id}}</th>        
+          <th>{{order.status}}</th>
+          <th>{{order.pay}}</th>
+          <th>{{order.price}}р</th>
+          <th>{{order.address}}</th>
+          <th>{{order.firstname}}</th>
+          <th>{{order.phonenumber}}</th>
+          <th>{{order.address}}</th>
+          <th>{{order.comment}}</th>   
+          <th>{{order.restaurants}}</th>
+          <th><a href="{% url 'admin:foodcartapp_order_change' order.id %}?next={{ request.get_full_path|urlencode }}">Редактировать</a></th>
         </tr>
       {% endif %}
     {% endfor %}

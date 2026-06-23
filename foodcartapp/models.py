@@ -111,6 +111,15 @@ class Order(models.Model):
         ),
         default='cash',
     )
+    restaurant = models.ForeignKey(
+        Restaurant,
+        related_name='orders',
+        verbose_name="Ресторан",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
 
     def __str__(self):
         return f"{self.firstname} {self.lastname} {self.address}"

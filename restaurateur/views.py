@@ -8,7 +8,12 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 
 
-from foodcartapp.models import Product, Restaurant, Order
+from foodcartapp.models import (
+    Product,
+    Restaurant,
+    Order,
+    RestaurantMenuItem
+)
 
 
 class Login(forms.Form):
@@ -92,9 +97,34 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
+    orders = []
+    for order_object in Order.objects.all().price():
+        order = {}
+        products = []
+        elements = order_object.elements.all()
+        for element in elements:
+            products.append(element.product)
+        order['id'] = order_object.id,
+        order['status'] = order_object.get_status_display()
+        order['pay'] = order_object.get_pay_display()
+        order['price'] = order_object.price
+        order['address'] = order_object.address
+        order['firstname'] = order_object.firstname
+        order['phonenumber'] = order_object.phonenumber
+        order['price'] = order_object.price
+        order['comment'] = order_object.comment
+        for product in products:
+            for restaurant in product.menu_items.all():
+                if not order_object.restaurant:
+                    order['restaurants'] = f'Мoжет быть приготовлен:\n{restaurant.restaurant}'
+                else:
+                    order['restaurants'] = f'Готовит {order_object.restaurant}'
+        orders.append(order)
+        orders = sorted(orders, key=lambda x: x['status'], reverse=True)
+
     return render(
         request,
         template_name='order_items.html',
         context={
-            'order_items':Order.objects.all().price()
+            'orders': orders
         })
