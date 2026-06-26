@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
 from django.db.models import F, Sum
 from django.utils import timezone
+from django.db.models import Case, Value, When
 
 
 class Restaurant(models.Model):
@@ -47,6 +48,16 @@ class OrderQuerySet(models.QuerySet):
             price=Sum(F('elements__product__price')*F('elements__quantity'))
         )
 
+    def order_status(self):
+        return self.annotate(
+            order_status=Case(
+                When(status='new', then=Value(1)),
+                When(status='assembly', then=Value(2)),
+                When(status='delivery', then=Value(3)),
+                When(status='completed', then=Value(4)),
+            )
+        ).order_by('order_status')
+
 
 class Order(models.Model):
     firstname = models.CharField(
@@ -86,17 +97,20 @@ class Order(models.Model):
         blank=True,
     )
     registrated_at = models.DateTimeField(
+        verbose_name='Заказ зарегистрирован',
         blank=True,
         null=True,
         db_index=True,
         default=timezone.now,
     )
     called_at = models.DateTimeField(
+        verbose_name='Позвонить клиенту',
         blank=True,
         null=True,
         db_index=True,
     )
     delivered_at = models.DateTimeField(
+        verbose_name='Передан в доставку',
         blank=True,
         null=True,
         db_index=True,
@@ -186,7 +200,7 @@ class OrderElements(models.Model):
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
-        related_name='products',
+        related_name='elements',
         verbose_name='продукт',
     )
     quantity = models.PositiveSmallIntegerField(
@@ -200,7 +214,7 @@ class OrderElements(models.Model):
         on_delete=models.CASCADE,
     )
     order_price = models.DecimalField(
-        verbose_name='стоимость',
+        verbose_name='Cтоимость',
         max_digits=8,
         decimal_places=2,
         validators=[MinValueValidator(0)]
@@ -244,7 +258,21 @@ class RestaurantMenuItem(models.Model):
     def __str__(self):
         return f"{self.restaurant.name} - {self.product.name}"
 
+class Location(models.Model):
+    address = models.CharField(
+        'адрес',
+        max_length=200,
+        unique=True,
+    )
+    lat = models.FloatField(blank=True, null=True, verbose_name="Широта")
+    lon = models.FloatField(blank=True, null=True, verbose_name="Долгота")
 
+    class Meta:
+        verbose_name = 'адрес'
+        verbose_name_plural = 'адреса'
+
+    def __str__(self):
+        return self.address
 
 
 

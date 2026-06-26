@@ -1,19 +1,40 @@
+import requests
+import re
 from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import user_passes_test
-
+from django.db.models import Prefetch
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
-
-
+from geopy import distance
+from django.conf import settings
 from foodcartapp.models import (
     Product,
     Restaurant,
     Order,
     RestaurantMenuItem
 )
+
+
+def fetch_coordinates(address):
+    base_url = "https://geocode-maps.yandex.ru/1.x"
+    response = requests.get(base_url, params={
+        "geocode": address,
+        "apikey": settings.YANDEX_API,
+        "format": "json",
+    })
+    response.raise_for_status()
+    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+
+    if not found_places:
+        return None
+
+    most_relevant = found_places[0]
+    lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
+
+    return lat, lon
 
 
 class Login(forms.Form):
@@ -96,31 +117,56 @@ def view_restaurants(request):
 
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
+
+
+
 def view_orders(request):
-    orders = []
-    for order_object in Order.objects.all().price():
-        order = {}
-        products = []
-        elements = order_object.elements.all()
-        for element in elements:
-            products.append(element.product)
-        order['id'] = order_object.id,
-        order['status'] = order_object.get_status_display()
-        order['pay'] = order_object.get_pay_display()
-        order['price'] = order_object.price
-        order['address'] = order_object.address
-        order['firstname'] = order_object.firstname
-        order['phonenumber'] = order_object.phonenumber
-        order['price'] = order_object.price
-        order['comment'] = order_object.comment
-        for product in products:
-            for restaurant in product.menu_items.all():
-                if not order_object.restaurant:
-                    order['restaurants'] = f'Мoжет быть приготовлен:\n{restaurant.restaurant}'
-                else:
-                    order['restaurants'] = f'Готовит {order_object.restaurant}'
-        orders.append(order)
-        orders = sorted(orders, key=lambda x: x['status'], reverse=True)
+    orders = Order.objects.all().price().order_status()
+    restaurants = Restaurant.objects.prefetch_related(
+        Prefetch(
+            'menu_items',
+            queryset=RestaurantMenuItem.objects.filter(
+                availability=True
+            ).select_related('product')
+        )
+    )
+    for restaurant in restaurants:
+        available_products = []
+        for menu_item in restaurant.menu_items.all():
+            available_products.append(menu_item.product)
+        restaurant.available_products = available_products
+
+    for order in orders:
+        available_products = []
+        for order_element in order.elements.all():
+            available_products.append(order_element.product)
+        order.available_products = available_products
+
+    for order in orders:
+        available_restaurants = []
+        for restaurant in restaurants:
+            if set(order.available_products).issubset(set(restaurant.available_products)):
+                available_restaurants.append(restaurant)
+            order.available_restaurants = available_restaurants 
+
+    for order in orders:
+        manager_restaurant = [] 
+        for restaurant in order.available_restaurants:            
+            order.manager_restaurant = manager_restaurant
+            order_coordinates = fetch_coordinates(order.address)
+            restaurant_cooredinates = fetch_coordinates(restaurant.address)
+            distance_to_restaurant = "{:.3f}".format(distance.distance(
+                restaurant_cooredinates,
+                order_coordinates
+            ).km)
+
+            manager_restaurant.append(f'{restaurant.name}: {distance_to_restaurant} км')
+            manager_restaurant = sorted(
+                manager_restaurant,
+                key=lambda x: int(re.search(r'\d+', x).group())
+            )
+            order.manager_restaurant = manager_restaurant
+
 
     return render(
         request,
@@ -128,3 +174,4 @@ def view_orders(request):
         context={
             'orders': orders
         })
+

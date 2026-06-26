@@ -11,7 +11,7 @@
   <br/>
   <br/>
   <div class="container">
-   <table class="table table-responsive">
+   <table class="table table-striped w-auto">
     <tr>
       <th>ID заказа</th>
       <th>Статус</th>
@@ -25,20 +25,31 @@
       <th>Рестораны</th>
       <th>Ссылка на админку</th>
     </tr>
-
     {% for order in orders %}
-      {% if order.status != 'Доставлен' %}
+      {% if order.status != 'completed' %}
         <tr>
           <th>{{order.id}}</th>        
-          <th>{{order.status}}</th>
-          <th>{{order.pay}}</th>
+          <th>{{order.get_status_display}}</th>
+          <th>{{order.get_pay_display}}</th>
           <th>{{order.price}}р</th>
-          <th>{{order.address}}</th>
           <th>{{order.firstname}}</th>
           <th>{{order.phonenumber}}</th>
           <th>{{order.address}}</th>
-          <th>{{order.comment}}</th>   
-          <th>{{order.restaurants}}</th>
+          <th>{{order.comment}}</th>
+          {% if order.restaurant %}   
+            <th>Готовит {{order.restaurant}}</th>
+          {% elif not order.manager_restaurant %}
+            <td>Адрес не найден</td>
+          {% else %}
+            <td>
+              <details>
+                <summary class="boldtext">Может быть приготовлен ресторанами:</summary>                
+                {% for restaurant in order.manager_restaurant %}
+                  <br>- {{ restaurant }}
+                {% endfor %}
+              </details>
+            </td>
+          {% endif %}
           <th><a href="{% url 'admin:foodcartapp_order_change' order.id %}?next={{ request.get_full_path|urlencode }}">Редактировать</a></th>
         </tr>
       {% endif %}

@@ -12,7 +12,11 @@ from rest_framework.serializers import ValidationError
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from rest_framework.serializers import ListField
-from .models import Product, Order, OrderElements
+from .models import (
+    Product,
+    Order,
+    OrderElements,
+)
 
 
 def banners_list_api(request):
@@ -100,6 +104,7 @@ class OrderSerializer(ModelSerializer):
 
 @api_view(['POST'])
 @transaction.atomic
+
 def register_order(request):
     order = json.dumps(request.data, ensure_ascii=False)
     order = json.loads(order)
