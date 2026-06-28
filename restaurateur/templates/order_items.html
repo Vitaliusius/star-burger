@@ -20,7 +20,6 @@
       <th>Адрес доставки</th>
       <th>Клиент</th>
       <th>Телефон</th>
-      <th>Адрес</th>
       <th>Комментарий</th>
       <th>Рестораны</th>
       <th>Ссылка на админку</th>
@@ -32,9 +31,9 @@
           <th>{{order.get_status_display}}</th>
           <th>{{order.get_pay_display}}</th>
           <th>{{order.price}}р</th>
+          <th>{{order.address}}</th>
           <th>{{order.firstname}}</th>
           <th>{{order.phonenumber}}</th>
-          <th>{{order.address}}</th>
           <th>{{order.comment}}</th>
           {% if order.restaurant %}   
             <th>Готовит {{order.restaurant}}</th>

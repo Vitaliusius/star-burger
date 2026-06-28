@@ -3,17 +3,17 @@ from django.shortcuts import reverse
 from django.templatetags.static import static
 from django.utils.html import format_html
 from django.shortcuts import redirect
-from django.http import HttpResponse
-from django.template import RequestContext, Template
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.conf import settings
 
-from .models import Product
-from .models import ProductCategory
-from .models import Restaurant
-from .models import RestaurantMenuItem
-from .models import Order
-from .models import OrderElements
+from .models import (
+    Product,
+    ProductCategory,
+    Restaurant,
+    RestaurantMenuItem,
+    Order,
+    OrderElements,
+)
 
 
 class RestaurantMenuItemInline(admin.TabularInline):
@@ -57,8 +57,6 @@ class ProductAdmin(admin.ModelAdmin):
         'category',
     ]
     search_fields = [
-        # FIXME SQLite can not convert letter case for cyrillic words properly, so search will be buggy.
-        # Migration to PostgreSQL is necessary
         'name',
         'category__name',
     ]
@@ -135,8 +133,9 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [
         OrderElementsInLine
     ]
+
     def response_post_save_change(self, request, obj):
-        allowed_hosts=settings.ALLOWED_HOSTS
+        allowed_hosts = settings.ALLOWED_HOSTS
         res = super().response_post_save_change(request, obj)
         if "next" in request.GET and url_has_allowed_host_and_scheme(
             request.GET['next'],

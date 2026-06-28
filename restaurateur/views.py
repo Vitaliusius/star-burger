@@ -16,6 +16,9 @@ from foodcartapp.models import (
     Order,
     RestaurantMenuItem
 )
+from locations.models import Location
+from django.utils import timezone
+from environs import Env
 
 
 def fetch_coordinates(address):
@@ -37,7 +40,24 @@ def fetch_coordinates(address):
     except requests.exceptions.HTTPError:
         return None
 
-    return lat, lon
+    return lon, lat
+
+
+def adds_address(address):
+    coordinates = fetch_coordinates(address)
+    if coordinates:
+        lon, lat = coordinates
+        request_at = timezone.now()
+    else:
+        lon = None
+        lat = None
+        request_at = None
+    Location.objects.get_or_create(
+        address=address,
+        lon=lon,
+        lat=lat,
+        request_at=request_at,
+    )
 
 
 class Login(forms.Form):
@@ -120,10 +140,8 @@ def view_restaurants(request):
 
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
-
-
-
 def view_orders(request):
+    address_database = list(Location.objects.values_list('address', flat=True))
     orders = Order.objects.all().price().order_status()
     restaurants = Restaurant.objects.prefetch_related(
         Prefetch(
@@ -150,19 +168,29 @@ def view_orders(request):
         for restaurant in restaurants:
             if set(order.available_products).issubset(set(restaurant.available_products)):
                 available_restaurants.append(restaurant)
-            order.available_restaurants = available_restaurants 
+            order.available_restaurants = available_restaurants
 
     for order in orders:
-        manager_restaurant = [] 
-        for restaurant in order.available_restaurants:            
-            order.manager_restaurant = manager_restaurant
-            order_coordinates = fetch_coordinates(order.address)
-            restaurant_cooredinates = fetch_coordinates(restaurant.address)
-            distance_to_restaurant = "{:.3f}".format(distance.distance(
-                restaurant_cooredinates,
-                order_coordinates
-            ).km)
+        if order.address not in address_database:
+            adds_address(order.address)
+        for restaurant in order.available_restaurants:
+            if restaurant.address not in address_database:
+                adds_address(restaurant.address)
 
+    locations = {}
+
+    for address, lon, lat in Location.objects.values_list('address', 'lon', 'lat'):
+        locations.update({address: (lat, lon)})
+
+    for order in orders:
+        manager_restaurant = []
+        if not locations.get(order.address):
+            continue
+        for restaurant in order.available_restaurants:
+            distance_to_restaurant = "{:.3f}".format(distance.distance(
+                locations.get(order.address),
+                locations.get(restaurant.address),
+            ).km)
             manager_restaurant.append(f'{restaurant.name}: {distance_to_restaurant} км')
             manager_restaurant = sorted(
                 manager_restaurant,
@@ -170,11 +198,9 @@ def view_orders(request):
             )
             order.manager_restaurant = manager_restaurant
 
-
     return render(
         request,
         template_name='order_items.html',
         context={
             'orders': orders
         })
-

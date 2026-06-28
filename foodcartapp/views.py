@@ -1,17 +1,11 @@
 import json
 
-import phonenumbers
-
 from django.http import JsonResponse
 from django.templatetags.static import static
 from django.db import transaction
-from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.serializers import ValidationError
-from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-from rest_framework.serializers import ListField
 from .models import (
     Product,
     Order,
@@ -45,7 +39,6 @@ def banners_list_api(request):
 
 def product_list_api(request):
     products = Product.objects.select_related('category').available()
-
     dumped_products = []
     for product in products:
         dumped_product = {
@@ -65,6 +58,7 @@ def product_list_api(request):
             }
         }
         dumped_products.append(dumped_product)
+
     return JsonResponse(dumped_products, safe=False, json_dumps_params={
         'ensure_ascii': False,
         'indent': 4,
@@ -78,33 +72,38 @@ class OrderElementsSerializer(ModelSerializer):
 
 
 class OrderSerializer(ModelSerializer):
-    products = OrderElementsSerializer(many=True, allow_empty=False, write_only=True)
+    products = OrderElementsSerializer(
+        many=True,
+        allow_empty=False,
+        write_only=True,
+    )
+
     def create(self, validated_data):
         instance = validated_data.pop('products')
         new_order = Order.objects.create(
             firstname=validated_data['firstname'],
             lastname=validated_data['lastname'],
             phonenumber=validated_data['phonenumber'],
-            address=validated_data['address'],            
+            address=validated_data['address'],
             )
         for element in instance:
             OrderElements.objects.create(
                 product=element.get('product'),
                 quantity=element.get('quantity'),
                 order=new_order,
-                order_price=element.get("quantity")*element.get('product').price
+                order_price=element.get("quantity")
+                * element.get('product').price
             )
-            
-        return new_order 
 
-    class Meta:       
+        return new_order
+
+    class Meta:
         model = Order
         fields = '__all__'
 
 
 @api_view(['POST'])
 @transaction.atomic
-
 def register_order(request):
     order = json.dumps(request.data, ensure_ascii=False)
     order = json.loads(order)
@@ -113,4 +112,3 @@ def register_order(request):
     serializer_order.save()
 
     return Response(serializer_order.data, status=201)
-
