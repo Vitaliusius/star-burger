@@ -1,5 +1,5 @@
-import requests
 import re
+
 from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
@@ -9,55 +9,19 @@ from django.db.models import Prefetch
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
 from geopy import distance
-from django.conf import settings
 from foodcartapp.models import (
     Product,
     Restaurant,
     Order,
-    RestaurantMenuItem
+    RestaurantMenuItem,
+    OrderElements
 )
-from locations.models import Location
-from django.utils import timezone
-from environs import Env
-
-
-def fetch_coordinates(address):
-    try:
-        base_url = "https://geocode-maps.yandex.ru/1.x"
-        response = requests.get(base_url, params={
-            "geocode": address,
-            "apikey": settings.YANDEX_API,
-            "format": "json",
-        })
-        response.raise_for_status()
-        found_places = response.json()['response']['GeoObjectCollection']['featureMember']
-
-        if not found_places:
-            return None
-
-        most_relevant = found_places[0]
-        lon, lat = most_relevant['GeoObject']['Point']['pos'].split(" ")
-    except requests.exceptions.HTTPError:
-        return None
-
-    return lon, lat
-
-
-def adds_address(address):
-    coordinates = fetch_coordinates(address)
-    if coordinates:
-        lon, lat = coordinates
-        request_at = timezone.now()
-    else:
-        lon = None
-        lat = None
-        request_at = None
-    Location.objects.get_or_create(
-        address=address,
-        lon=lon,
-        lat=lat,
-        request_at=request_at,
-    )
+from locations.help_code_location import adds_address
+from restaurateur.help_code import (
+    get_restaurant_available_products,
+    get_order_available_products,
+    get_all_locations
+)
 
 
 class Login(forms.Form):
@@ -141,8 +105,13 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
-    address_database = list(Location.objects.values_list('address', flat=True))
-    orders = Order.objects.all().price().order_status()
+    orders = Order.objects.select_related('restaurant').prefetch_related(
+        Prefetch(
+            'elements',
+            queryset=OrderElements.objects.select_related('product')
+        )
+    ).price().order_status()
+
     restaurants = Restaurant.objects.prefetch_related(
         Prefetch(
             'menu_items',
@@ -151,41 +120,13 @@ def view_orders(request):
             ).select_related('product')
         )
     )
-    for restaurant in restaurants:
-        available_products = []
-        for menu_item in restaurant.menu_items.all():
-            available_products.append(menu_item.product)
-        restaurant.available_products = available_products
 
-    for order in orders:
-        available_products = []
-        for order_element in order.elements.all():
-            available_products.append(order_element.product)
-        order.available_products = available_products
-
-    for order in orders:
-        available_restaurants = []
-        for restaurant in restaurants:
-            if set(order.available_products).issubset(set(restaurant.available_products)):
-                available_restaurants.append(restaurant)
-            order.available_restaurants = available_restaurants
-
-    for order in orders:
-        if order.address not in address_database:
-            adds_address(order.address)
-        for restaurant in order.available_restaurants:
-            if restaurant.address not in address_database:
-                adds_address(restaurant.address)
-
-    locations = {}
-
-    for address, lon, lat in Location.objects.values_list('address', 'lon', 'lat'):
-        locations.update({address: (lat, lon)})
+    restaurants = get_restaurant_available_products(restaurants)
+    orders = get_order_available_products(orders, restaurants)
+    locations = get_all_locations()
 
     for order in orders:
         manager_restaurant = []
-        if not locations.get(order.address):
-            continue
         for restaurant in order.available_restaurants:
             distance_to_restaurant = "{:.3f}".format(distance.distance(
                 locations.get(order.address),
@@ -197,6 +138,8 @@ def view_orders(request):
                 key=lambda x: int(re.search(r'\d+', x).group())
             )
             order.manager_restaurant = manager_restaurant
+        if not adds_address(order.address):
+            order.address = 'Такого адреса нет'
 
     return render(
         request,

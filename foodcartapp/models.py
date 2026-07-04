@@ -58,6 +58,16 @@ class OrderQuerySet(models.QuerySet):
 
 
 class Order(models.Model):
+    STATUS_CHOICES = (
+        ('new', 'Необработанный'),
+        ('assembly', 'В сборке'),
+        ('delivery', 'В пути'),
+        ('completed', 'Доставлен'),
+    )
+    PAY_CHOICES = (
+        ('online', 'Онлайн'),
+        ('cash', 'Наличными'),
+    )
     firstname = models.CharField(
         'Имя',
         max_length=50,
@@ -82,12 +92,7 @@ class Order(models.Model):
         max_length=15,
         verbose_name='Статус заказа',
         db_index=True,
-        choices=(
-            ('new', 'Необработанный'),
-            ('assembly', 'В сборке'),
-            ('delivery', 'В пути'),
-            ('completed', 'Доставлен'),
-        ),
+        choices=STATUS_CHOICES,
         default='new',
     )
     comment = models.TextField(
@@ -117,20 +122,21 @@ class Order(models.Model):
         max_length=20,
         verbose_name='Способ оплаты',
         db_index=True,
-        choices=(
-            ('online', 'Онлайн'),
-            ('cash', 'Наличными'),
-        ),
-        default='cash',
+        choices=PAY_CHOICES,
+        default='cash'
     )
     restaurant = models.ForeignKey(
         Restaurant,
         related_name='orders',
         verbose_name="Ресторан",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
     )
+
+    class Meta:
+        verbose_name = 'Заказ'
+        verbose_name_plural = 'Заказы'
 
     def __str__(self):
         return f"{self.firstname} {self.lastname} {self.address}"

@@ -17,7 +17,7 @@ class Location(models.Model):
         null=True,
         verbose_name='Широта',
     )
-    request_at = models.DateTimeField(
+    request_date = models.DateTimeField(
         blank=True,
         null=True,
         db_index=True,
