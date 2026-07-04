@@ -123,7 +123,8 @@ class Order(models.Model):
         verbose_name='Способ оплаты',
         db_index=True,
         choices=PAY_CHOICES,
-        default='cash'
+        null=True,
+        blank=True,
     )
     restaurant = models.ForeignKey(
         Restaurant,
