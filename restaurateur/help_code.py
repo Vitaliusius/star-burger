@@ -1,4 +1,5 @@
 from locations.models import Location
+from locations.help_code_location import adds_address
 
 
 def get_restaurant_available_products(restaurants):
@@ -23,8 +24,17 @@ def get_order_available_restaurants(orders, restaurants):
     return orders
 
 
-def get_all_locations():
-    locations = {}
-    for address, lon, lat in Location.objects.values_list('address', 'lon', 'lat'):
-        locations.update({address: (lat, lon)})
+def get_locations(orders, restaurants):
+    addresses = []
+    for order in orders:
+        addresses.append(order.address)
+        for restaurant in restaurants:
+            addresses.append(restaurant.address)
+
+    locations = {address: (lat, lon) for address, lat, lon in Location.objects.filter(address__in=addresses).values_list('address', 'lat', 'lon')}
+
+    for address in locations:
+        if address not in addresses:
+            adds_address(address)
+
     return locations

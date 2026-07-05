@@ -87,7 +87,6 @@ class Order(models.Model):
         max_length=200,
         db_index=True,
     )
-    objects = OrderQuerySet.as_manager()
     status = models.CharField(
         max_length=15,
         verbose_name='Статус заказа',
@@ -134,6 +133,7 @@ class Order(models.Model):
         null=True,
         blank=True,
     )
+    objects = OrderQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Заказ'

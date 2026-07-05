@@ -20,7 +20,7 @@ from locations.help_code_location import adds_address
 from restaurateur.help_code import (
     get_restaurant_available_products,
     get_order_available_products,
-    get_all_locations
+    get_locations
 )
 
 
@@ -110,7 +110,7 @@ def view_orders(request):
             'elements',
             queryset=OrderElements.objects.select_related('product')
         )
-    ).price().order_status()
+    ).price().order_status().exclude(status='completed')
 
     restaurants = Restaurant.objects.prefetch_related(
         Prefetch(
@@ -123,11 +123,13 @@ def view_orders(request):
 
     restaurants = get_restaurant_available_products(restaurants)
     orders = get_order_available_products(orders, restaurants)
-    locations = get_all_locations()
+    locations = get_locations(orders, restaurants)
 
     for order in orders:
         manager_restaurant = []
         for restaurant in order.available_restaurants:
+            if not locations.get(order.address):
+                continue
             distance_to_restaurant = "{:.3f}".format(distance.distance(
                 locations.get(order.address),
                 locations.get(restaurant.address),
@@ -138,8 +140,6 @@ def view_orders(request):
                 key=lambda x: int(re.search(r'\d+', x).group())
             )
             order.manager_restaurant = manager_restaurant
-        if not adds_address(order.address):
-            order.address = 'Такого адреса нет'
 
     return render(
         request,
