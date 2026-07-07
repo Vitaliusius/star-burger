@@ -8,3 +8,6 @@ phonenumberslite==9.0.3
 python-dotenv==1.2.2
 requests==2.34.2
 geopy==2.4.1
+rollbar==1.3.0
+gunicorn==26.0.0
+
