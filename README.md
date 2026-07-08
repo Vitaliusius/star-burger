@@ -2,6 +2,8 @@
 
 Это сайт сети ресторанов Star Burger. Здесь можно заказать превосходные бургеры с доставкой на дом.
 
+Пример рабочего сайта можно увидеть [здесь](https://vitalius.site/)
+
 ![скриншот сайта](https://dvmn.org/filer/canonical/1594651635/686/)
 
 
@@ -39,8 +41,14 @@ python --version
 
 Возможно, вместо команды `python` здесь и в остальных инструкциях этого README придётся использовать `python3`. Зависит это от операционной системы и от того, установлен ли у вас Python старой второй версии. 
 
+Установите зависимости для работы с базой данных postgresql(для Linux):
+```
+sudo apt-get update
+sudo apt-get install -y python3-pip python3-dev libpq-dev postgresql postgresql-contrib
+```
+
 В каталоге проекта создайте виртуальное окружение:
-```sh
+```
 python -m venv venv
 ```
 Активируйте его. На разных операционных системах это делается разными командами:
@@ -50,21 +58,60 @@ python -m venv venv
 
 
 Установите зависимости в виртуальное окружение:
-```sh
+```
 pip install -r requirements.txt
 ```
-
-Определите переменную окружения `SECRET_KEY`. Создать файл `.env` в каталоге `star_burger/` и положите туда такой код:
-```sh
-SECRET_KEY=django-insecure-0if40nf4nf93n4
+Перейдите в суперпользователя postgresql (для Linux):
+```
+sudo su - postgres
+```
+Перейдите в командную оболочку postgres (для Linux):
+```
+psql
+```
+Перейдите в суперпользователя postgresql и сразу командную оболчку (для Windows), после ввода команды введите пароль суперпользователя, заданный вами при установке postgresql:
+```
+psql - U postgres
 ```
 
-Создайте файл базы данных SQLite и отмигрируйте её следующей командой:
+Создайте базу данных:
+```
+CREATE DATABASE `имя_базы_данных`;
+```
+Создатйте пользователя и пароль для него:
+```
+CREATE USER `имя_пользователя` WITH PASSWORD `'пароль'`;
+```
+Установите для пользователя следующие настройки:
+```
+ALTER ROLE `имя_пользователя` SET client_encoding TO 'utf8';
+ALTER ROLE `имя_пользователя` SET default_transaction_isolation TO 'read committed';
+ALTER ROLE `имя_пользователя` SET timezone TO 'UTC';
+```
+Предоставьте пользователю следующие права:
+```
+GRANT ALL PRIVILEGES ON DATABASE `имя_базы_данных` TO `имя_пользователя`;
+```
+Подключитесь к базе данных:
+```
+\c `имя_базы_данных`
+```
+Предоставьте пользователю следующие права:
+```
+GRANT ALL ON SCHEMA public TO `имя_пользователя`;
+```
+
+Определите переменную окружения `SECRET_KEY` и `DB_URL`. Создать файл `.env` в каталоге `star_burger/` и положите туда такой код:
+```
+SECRET_KEY=django-insecure-0if40nf4nf93n4
+```
+DB_URL=postgresql://`имя_пользователя`:`'пароль'`@127.0.0.1:5432/`имя_базы_данных`
+
+Выполните миграцию для базы данных:
 
 ```sh
 python manage.py migrate
 ```
-
 Запустите сервер:
 
 ```sh
@@ -136,10 +183,11 @@ Parcel будет следить за файлами в каталоге `bundle
 
 ## Как запустить prod-версию сайта
 
-Собрать фронтенд:
+Ввести следующие команды:
 
-```sh
-./node_modules/.bin/parcel build bundles-src/index.js --dist-dir bundles --public-url="./"
+```
+cd /opt/star-burger/
+./deploy_star_burger.sh
 ```
 
 Настроить бэкенд: создать файл `.env` в каталоге `star_burger/` со следующими настройками:
@@ -148,6 +196,8 @@ Parcel будет следить за файлами в каталоге `bundle
 - `SECRET_KEY` — секретный ключ проекта. Он отвечает за шифрование на сайте. Например, им зашифрованы все пароли на вашем сайте.
 - `ALLOWED_HOSTS` — [см. документацию Django](https://docs.djangoproject.com/en/5.2/ref/settings/#allowed-hosts)
 - `YANDEX_API_KEY` — API ключ Яндекс.
+- `ROLLBAR_ACCESS_TOKEN` - API токен Роллбар.
+- `ROLLBAR_ENVIRONMENT` - Режим разработки/запуска сайта.
 
 ## Цели проекта
 

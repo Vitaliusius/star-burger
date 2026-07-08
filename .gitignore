@@ -3,6 +3,7 @@ node_modules/
 media/
 staticfiles/
 .env
+datadump.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
