@@ -41,7 +41,11 @@ python --version
 
 Возможно, вместо команды `python` здесь и в остальных инструкциях этого README придётся использовать `python3`. Зависит это от операционной системы и от того, установлен ли у вас Python старой второй версии. 
 
-Установите зависимости для работы с базой данных postgresql(для Linux):
+Установите зависимости для работы с базой данных postgresql:
+
+Для Windows скачайте установочный файл с оф.сайта и установить postgresql
+
+(для Linux):
 ```
 sudo apt-get update
 sudo apt-get install -y python3-pip python3-dev libpq-dev postgresql postgresql-contrib
@@ -105,7 +109,9 @@ GRANT ALL ON SCHEMA public TO `имя_пользователя`;
 ```
 SECRET_KEY=django-insecure-0if40nf4nf93n4
 ```
+```
 DB_URL=postgresql://`имя_пользователя`:`'пароль'`@127.0.0.1:5432/`имя_базы_данных`
+```
 
 Выполните миграцию для базы данных:
 
