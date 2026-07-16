@@ -18,6 +18,8 @@ ROLLBAR_ACCESS_TOKEN = env.str('ROLLBAR_ACCESS_TOKEN', None)
 
 ROLLBAR_ENVIRONMENT = env.str('ROLLBAR_ENVIRONMENT', 'development')
 
+DB_URL = env.str('DB_URL')
+
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') 
 
 SECRET_KEY = env('SECRET_KEY')
@@ -103,7 +105,7 @@ MEDIA_URL = '/media/'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default='sqlite:////{0}'.format(os.path.join(BASE_DIR, 'db.sqlite3'))
+        default=DB_URL,
     )
 }
 

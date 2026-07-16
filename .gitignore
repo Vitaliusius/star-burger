@@ -148,3 +148,5 @@ dmypy.json
 cython_debug/
 
 .parcel-cache/
+
+dump.json
