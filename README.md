@@ -228,6 +228,133 @@ docker compose exec backend python manage.py createsuperuser
 ```
 docker compose down
 ```
+## Запуск prod-версии с помощью Docker
+
+Инструкция по настройке и запуску проекта на продуктивном сервере Ubuntu под управлением Docker и Nginx.
+
+
+###  Подготовка сервера (Создание Swap)
+
+Для предотвращения ошибки нехватки памяти (`Killed / OOM Killer`) при сборке фронтенда создаем файл подкачки на 4 ГБ:
+
+```bash
+sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+### Настройка окружения
+
+Склонируйте репозиторий в /opt/star-burger:
+
+```bash
+git clone git@github.com:Vitaliusius/star-burger.git /opt/star-burger
+```
+Создайте файл .env:
+
+```bash
+nano .env
+```
+Укажите в .env ваши секретные ключи, параметры БД (DB_NAME, DB_USER, DB_PASSWORD), ALLOWED_HOSTS и токены внешних сервисов:
+```
+SECRET_KEY=ваш_секретный_ключ_django
+DEBUG=False
+ALLOWED_HOSTS=vitalius.site,www.vitalius.site,localhost,127.0.0.1
+
+DB_NAME=starburger
+DB_USER=starburger_user
+DB_PASSWORD=ваш_пароль_бд
+DB_HOST=db
+DB_PORT=5432
+
+ROLLBAR_ACCESS_TOKEN=ваш_токен_rollbar
+ROLLBAR_ENVIRONMENT=production
+YANDEX_API_KEY=ваш_ключ_геокодера_яндекс`
+```
+### Подготовка директорий и прав
+
+```
+sudo mkdir -p /var/www/frontend /opt/star-burger/media
+sudo chown -R www-data:www-data /var/www/frontend /opt/star-burger/media
+sudo chmod -R 755 /var/www/frontend /opt/star-burger/media
+```
+
+### Настройка Nginx
+Создайте файл /etc/nginx/sites-available/star-burger:
+```
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ваш_домен_или_IP;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name ваш_домен_или_IP;
+
+    ssl_certificate /etc/letsencrypt/live/ваш_домен/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ваш_домен/privkey.pem;
+
+    location /static/ {
+        alias /var/www/frontend/;
+        expires 30d;
+    }
+
+    location /media/ {
+        alias /opt/star-burger/media/;
+    }
+
+    location / {
+        proxy_pass [http://127.0.0.1:8000](http://127.0.0.1:8000);
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Активируйте конфигурацию:
+```
+sudo ln -sf /etc/nginx/sites-available/star-burger /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### Развертывание и обновление (Деплой)
+
+Все последующие обновления проекта производятся одной командой с помощью автоматического скрипта deploy_star_burger.sh.
+```
+cd /opt/star-burger
+```
+Делаем скрипт исполняемым
+```
+chmod +x deploy_star_burger.sh
+```
+
+Запускаем деплой
+```
+./deploy_star_burger.sh
+```
+Что делает скрипт deploy_star_burger.sh:
+
+- Подтягивает свежие изменения из Git (git pull).
+
+- Пересобирает и перезапускает Docker-контейнеры бэкенда и БД.
+
+- Применяет миграции базы данных и собирает Django-статику.
+
+- Собирает оптимизированный production-бандл фронтенда.
+
+- Копирует всю статику в /var/www/frontend/ и выставляет корректные права.
+
+- Перезапускает Nginx.
+
+Далее переходим на сайт по домену или IP_адресу.
+
 
 ## Цели проекта
 
