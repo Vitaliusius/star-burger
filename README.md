@@ -205,6 +205,30 @@ cd /opt/star-burger/
 - `ROLLBAR_ACCESS_TOKEN` - API токен Роллбар.
 - `ROLLBAR_ENVIRONMENT` - Режим разработки/запуска сайта.
 
+## Запуск dev-версии с помощью Docker
+Docker должен быть уже установлен.
+
+1. Задайте в файле .env переменные окружения SECRET_KEY и укажите следующие значения:
+```
+SECRET_KEY=django-insecure-0if40nf4nf93n4
+```
+Перейдите в директорию проекта в вашей CLI.
+
+2. Запустите контейнеры:
+```
+docker compose up -d
+```
+3. Создать суперпользователя Django можно следующей командой:
+```
+docker compose exec backend python manage.py createsuperuser
+```
+Ваш сайт будет на странице (http://localhost:8000)
+
+Остановить сайт можно командой:
+```
+docker compose down
+```
+
 ## Цели проекта
 
 Код написан в учебных целях — это урок в курсе по Python и веб-разработке на сайте [Devman](https://dvmn.org). За основу был взят код проекта [FoodCart](https://github.com/Saibharath79/FoodCart).
