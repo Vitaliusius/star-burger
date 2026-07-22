@@ -26,6 +26,8 @@ DEBUG = env.bool('DEBUG', False)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
 
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+
 ROLLBAR = {
     'access_token': ROLLBAR_ACCESS_TOKEN,
     'environment': ROLLBAR_ENVIRONMENT,
