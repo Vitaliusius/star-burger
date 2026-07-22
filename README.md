@@ -275,9 +275,9 @@ YANDEX_API_KEY=ваш_ключ_геокодера_яндекс`
 ### Подготовка директорий и прав
 
 ```
-sudo mkdir -p /var/www/frontend /opt/star-burger/media
-sudo chown -R www-data:www-data /var/www/frontend /opt/star-burger/media
-sudo chmod -R 755 /var/www/frontend /opt/star-burger/media
+sudo mkdir -p /var/www/frontend /имя-директории-с-вашим-проектом/media
+sudo chown -R www-data:www-data /var/www/frontend /имя-директории-с-вашим-проектом/media
+sudo chmod -R 755 /var/www/frontend /имя-директории-с-вашим-проектом/media
 ```
 
 ### Настройка Nginx
