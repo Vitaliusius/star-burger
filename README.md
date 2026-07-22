@@ -246,10 +246,10 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 ### Настройка окружения
 
-Склонируйте репозиторий в /opt/star-burger:
+Склонируйте репозиторий:
 
 ```bash
-git clone git@github.com:Vitaliusius/star-burger.git /opt/star-burger
+git clone git@github.com:Vitaliusius/star-burger.git 
 ```
 Создайте файл .env:
 
@@ -260,7 +260,7 @@ nano .env
 ```
 SECRET_KEY=ваш_секретный_ключ_django
 DEBUG=False
-ALLOWED_HOSTS=vitalius.site,www.vitalius.site,localhost,127.0.0.1
+ALLOWED_HOSTS=IP_адресс_сервера_и_или_домен
 
 DB_NAME=starburger
 DB_USER=starburger_user
@@ -281,7 +281,7 @@ sudo chmod -R 755 /var/www/frontend /opt/star-burger/media
 ```
 
 ### Настройка Nginx
-Создайте файл /etc/nginx/sites-available/star-burger:
+Создайте файл /etc/nginx/sites-available/ваш_домен:
 ```
 server {
     listen 80;
@@ -304,7 +304,7 @@ server {
     }
 
     location /media/ {
-        alias /opt/star-burger/media/;
+        alias /имя-директории-с-вашим-проектом/media/;
     }
 
     location / {
@@ -319,7 +319,7 @@ server {
 
 Активируйте конфигурацию:
 ```
-sudo ln -sf /etc/nginx/sites-available/star-burger /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/ваш_домен /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 ```
@@ -327,9 +327,7 @@ sudo nginx -t && sudo systemctl reload nginx
 ### Развертывание и обновление (Деплой)
 
 Все последующие обновления проекта производятся одной командой с помощью автоматического скрипта deploy_star_burger.sh.
-```
-cd /opt/star-burger
-```
+
 Делаем скрипт исполняемым
 ```
 chmod +x deploy_star_burger.sh
